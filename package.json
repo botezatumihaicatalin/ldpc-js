@@ -1,0 +1,14 @@
+{
+  "name": "ldpc-js",
+  "version": "1.0.0",
+  "description": "Javascript implementation of Low-parity density codes (for education purposes).",
+  "main": "ldpc.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Botezatu Mihai Catalin",
+  "license": "ISC",
+  "dependencies": {
+    "mathjs": "^3.11.5"
+  }
+}
