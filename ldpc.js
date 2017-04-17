@@ -90,7 +90,7 @@
       return buffer
     }
 
-    LDPC.prototype.finalPass = function(matrix) {
+    LDPC.prototype.finalPass = function(matrix, initial) {
       var finals = new Array(this.n);
       for (var i = 0; i < finals.length; i++) {
         finals[i] = new Array();
@@ -119,7 +119,7 @@
         console.log(0, current.toString())
       }
 
-      return this.finalPass(current);
+      return this.finalPass(current, initial);
     }
 
     return LDPC;
