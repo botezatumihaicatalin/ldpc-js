@@ -14,23 +14,23 @@
     function LDPC(options) {
       options = options || { }
       if (typeof options.n !== "number") {
-        options.n = 0
+        options.n = 0;
       }
       if (typeof options.k !== "number") {
-        options.k = 0
+        options.k = 0;
       }
       if (typeof options.error !== "number") {
-        options.error = 0.1
+        options.error = 0.01;
       }
       if (typeof options.parity === "undefined") {
-        options.parity = new Array()
+        options.parity = new Array();
       }
 
-      this.n = options.n
-      this.k = options.k
-      this.j = this.n - this.k
-      this.error = options.error
-      this.parity = math.sparse(options.parity).resize([ this.j, this.n ])
+      this.n = options.n;
+      this.k = options.k;
+      this.j = this.n - this.k;
+      this.error = options.error;
+      this.parity = math.sparse(options.parity).resize([ this.j, this.n ]);
     }
 
     function normalizedProduct(values) {
@@ -42,37 +42,37 @@
     }
 
     LDPC.prototype.firstPass = function(symbols) {
-      var error = this.error
+      var error = this.error;
 
       return this.parity.map(function (value, index) {
         var check = index[0], digit = index[1];
-        return symbols[digit] === 1 ? error : (1 - error)
-      }, true)
+        return symbols[digit] === 0 ? error : (1 - error);
+      }, true);
     }
 
     LDPC.prototype.passMessageToParity = function(matrix, initial) {
-      var buffer = this.parity.clone()
-      var rows = math.range(0, this.j)
+      var buffer = this.parity.clone();
+      var rows = math.range(0, this.j);
 
       matrix.forEach(function (value, index) {
         var check = index[0], digit = index[1];
-        var column = matrix.subset(math.index(rows, digit))
-        var product = [ initial.get(index) ]
+        var column = matrix.subset(math.index(rows, digit));
+        var product = [ initial.get(index) ];
 
         column.forEach(function (valuep, indexp) {
           var checkp = indexp[0], digitp = indexp[1];
-          if (checkp !== check) product.push(valuep)
+          if (checkp !== check) product.push(valuep);
         }, true)
 
         buffer.set(index, normalizedProduct(product));
       }, true)
 
-      return buffer
+      return buffer;
     }
 
     LDPC.prototype.passMessageToVariable = function(matrix) {
-      var buffer = this.parity.clone()
-      var cols = math.range(0, this.n)
+      var buffer = this.parity.clone();
+      var cols = math.range(0, this.n);
 
       matrix.forEach(function (value, index) {
         var check = index[0], digit = index[1];
@@ -81,13 +81,13 @@
 
         row.forEach(function (valuep, indexp) {
           var checkp = indexp[0], digitp = indexp[1];
-          if (digitp !== digit) product *= 1 - 2 * valuep
+          if (digitp !== digit) product *= 1 - 2 * valuep;
         }, true)
 
         buffer.set(index, 0.5 - 0.5 * product);
       }, true)
 
-      return buffer
+      return buffer;
     }
 
     LDPC.prototype.finalPass = function(matrix, initial) {
@@ -98,6 +98,9 @@
 
       matrix.forEach(function (value, index) {
         var check = index[0], digit = index[1];
+        if (finals[digit].length === 0) {
+          finals[digit].push(initial.get(index));
+        }
         finals[digit].push(value);
       }, true)
 
@@ -111,15 +114,17 @@
     LDPC.prototype.tryCorrect = function(symbols) {
       var initial = this.firstPass(symbols);
       var current = this.passMessageToVariable(initial);
-      console.log(0, current.toString())
 
       for (var i = 0; i < 100; i ++) {
         current = this.passMessageToParity(current, initial);
         current = this.passMessageToVariable(current);
-        console.log(0, current.toString())
       }
 
       return this.finalPass(current, initial);
+    }
+
+    LDPC.generateParity = function(n, k) {
+
     }
 
     return LDPC;
