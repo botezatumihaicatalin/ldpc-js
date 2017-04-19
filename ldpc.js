@@ -8,22 +8,27 @@
   else {
     root.LDPC = factory(root.math);
   }
-}(window, function (math) {
+}(this, function (math) {
     // this is where I defined my module implementation
 
     function LDPC(options) {
       options = options || { }
+      
+      // The coded message has "n" symbols
       if (typeof options.n !== "number") {
-        options.n = 0;
+        options.n = 0; 
       }
+      // The input message has "k" symbols
       if (typeof options.k !== "number") {
-        options.k = 0;
+        options.k = 0; 
       }
+      // The probability that the channel will error some bits.
       if (typeof options.error !== "number") {
-        options.error = 0.01;
+        options.error = 0.01; 
       }
+      // The parity matrix used to actually encode/decode.
       if (typeof options.parity === "undefined") {
-        options.parity = new Array();
+        options.parity = LDPC.generateParity(options.n, options.k);
       }
 
       this.n = options.n;
@@ -31,6 +36,7 @@
       this.j = this.n - this.k;
       this.error = options.error;
       this.parity = math.sparse(options.parity).resize([ this.j, this.n ]);
+      this.fmatrix = this.calcFMatrix();
     }
 
     function normalizedProduct(values) {
@@ -39,6 +45,24 @@
         prod1 *= values[i], prod2 *= 1.0 - values[i];
       }
       return prod1 / (prod1 + prod2);
+    }
+
+    LDPC.prototype.calcFMatrix = function() {
+      var rows = math.range(0, this.j);
+      var dcols = math.range(0, this.k);
+      var ecols = math.range(this.k, this.n);
+
+      var dMatrix = this.parity.subset(math.index(rows, dcols));
+      var eMatrix = this.parity.subset(math.index(rows, ecols));
+
+      return math.multiply(math.inv(eMatrix), dMatrix)
+        .map(function(elem) { return Math.abs(elem) % 2 })
+    }
+
+    LDPC.prototype.encode = function(symbols) {
+      var prod = math.multiply(this.fmatrix, symbols);
+      var control = [].concat.apply([], prod.toArray());
+      return symbols.concat(control);
     }
 
     LDPC.prototype.firstPass = function(symbols) {
@@ -123,8 +147,55 @@
       return this.finalPass(current, initial);
     }
 
-    LDPC.generateParity = function(n, k) {
+    function randomPermutation(size) {
+      var array = math.range(0, size).toArray();
 
+      for (var currIdx = size - 1; currIdx > 0; currIdx--) {
+        var randIdx = Math.floor(Math.random() * (currIdx + 1));
+        var tempVal = array[currIdx];
+        array[currIdx] = array[randIdx];
+        array[randIdx] = tempVal;
+      }
+
+      return array
+    }
+
+    function applyPermutation(array, perm) {
+      var buffer = new Array(array.length);
+      for (var i = 0; i < array.length; i ++) {
+        buffer[perm[i]] = array[i];
+      }
+      return buffer
+    }
+
+    LDPC.generateParity = function(n, k) {
+      var matrix = [ ];
+      var rows = n - k, cols = n;
+      var chunk = Math.floor(n / k);
+
+      for (var i = 0; i < chunk; i ++) {
+        var padding = i * k, j = 0;
+        var row = new Array(cols);
+        for (j = 0; j < padding; j ++) {
+          row[j] = 0
+        }
+        for (j = padding; j < padding + k; j ++) {
+          row[j] = 1;
+        }
+        for (j = padding + k; j < cols; j ++) {
+          row[j] = 0;
+        }
+        matrix.push(row)
+      }
+
+      for (var i = chunk; i < rows; i += 0) {
+        var perm = randomPermutation(cols);
+        for (var j = 0; j < chunk && i < rows; j ++, i++) {
+          matrix.push(applyPermutation(matrix[j], perm));
+        }
+      }
+
+      return matrix;
     }
 
     return LDPC;

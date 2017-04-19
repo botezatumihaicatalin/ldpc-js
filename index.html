@@ -6,8 +6,8 @@
 </head>
 <body>
   <script type="text/javascript">
-  	var parity = [[ 1,1,1,0,0,0 ], [ 0,0,0,1,1,1 ], [ 1,0,1,0,0,1 ]] // x1 + x2 + x3 = 0, x4 + x5 + x6 = 0, x1 + x3 + x6 = 0: 0 1 1 1 0 1
-	window.coder = new LDPC({ n: 6, k: 3, parity: parity });
+  	var parity = [[1,1,1,0,0], [0,0,1,1,1], [ 1,0,1,0,1 ]]
+	window.coder = new LDPC({ n: 5, k: 2, parity: parity });
   </script>
 </body>
 </html>
