@@ -36,7 +36,7 @@
       this.j = this.n - this.k;
       this.error = options.error;
       this.parity = math.sparse(options.parity).resize([ this.j, this.n ]);
-      this.fmatrix = this.calcFMatrix();
+      this.generator = this.calcGenerator();
     }
 
     function normalizedProduct(values) {
@@ -47,7 +47,9 @@
       return prod1 / (prod1 + prod2);
     }
 
-    LDPC.prototype.calcFMatrix = function() {
+    // Computes the generator matrix from the parity matrix.
+    // Assumes the parity matrix can be mapped to a G = [ I|K ].
+    LDPC.prototype.calcGenerator = function() {
       var rows = math.range(0, this.j);
       var dcols = math.range(0, this.k);
       var ecols = math.range(this.k, this.n);
@@ -55,14 +57,17 @@
       var dMatrix = this.parity.subset(math.index(rows, dcols));
       var eMatrix = this.parity.subset(math.index(rows, ecols));
 
-      return math.multiply(math.inv(eMatrix), dMatrix)
-        .map(function(elem) { return Math.abs(elem) % 2 })
+      var fMatrix = math.multiply(math.inv(eMatrix), dMatrix)
+        .map(function(elem) { return Math.abs(elem) % 2 });
+
+      return math.concat(math.eye(this.k), math.transpose(fMatrix));
     }
 
+    // Encodes the given symbols. It's G * symbols, where G is generator.
     LDPC.prototype.encode = function(symbols) {
-      var prod = math.multiply(this.fmatrix, symbols);
-      var control = [].concat.apply([], prod.toArray());
-      return symbols.concat(control);
+      var product = math.multiply(symbols, this.generator);
+      var coded = [].concat.apply([], product.toArray());
+      return coded.map(function(v) { return Math.abs(v) % 2 })
     }
 
     LDPC.prototype.firstPass = function(symbols) {

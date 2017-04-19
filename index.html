@@ -6,8 +6,12 @@
 </head>
 <body>
   <script type="text/javascript">
-  	var parity = [[1,1,1,0,0], [0,0,1,1,1], [ 1,0,1,0,1 ]]
-	window.coder = new LDPC({ n: 5, k: 2, parity: parity });
+  	var parity = [[0, 0, 0, 1, 1, 1, 1], [0, 1, 1, 0, 0, 1, 1], [1, 0, 1, 0, 1, 0, 1]];
+	window.coder = new LDPC({ n: 7, k: 4, parity: parity });
+
+	var sent = window.coder.encode([1, 0, 1, 0]);
+	var received = sent.slice(); received[2] = 0;
+	var corrected = coder.tryCorrect(received).map(x => +(x >= 0.5));
   </script>
 </body>
 </html>
