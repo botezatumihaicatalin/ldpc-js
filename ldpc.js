@@ -28,7 +28,7 @@
       }
       // The parity matrix used to actually encode/decode.
       if (typeof options.parity === "undefined") {
-        options.parity = LDPC.generateParity(options.n, options.k);
+        options.parity = LDPC.generateParity2(options.n, options.k);
       }
 
       this.n = options.n;
@@ -66,7 +66,7 @@
     // Encodes the given symbols. It's G * symbols, where G is generator.
     LDPC.prototype.encode = function(symbols) {
       var product = math.multiply(symbols, this.generator);
-      var coded = [].concat.apply([], product.toArray());
+      var coded = math.flatten(product.toArray());
       return coded.map(function(v) { return Math.abs(v) % 2 })
     }
 
@@ -173,6 +173,7 @@
       return buffer
     }
 
+    // Gallager's method, which generates a parity matrix
     LDPC.generateParity = function(n, k) {
       var matrix = [ ];
       var rows = n - k, cols = n;
@@ -201,6 +202,73 @@
       }
 
       return matrix;
+    }
+
+    function getPrimeFactors(number) {
+      var factors = [ ];
+      for (var i = 2; i <= number; i ++) {
+        divided = false
+        while (number % i === 0) {
+          number /= i, divided = true;
+        }
+        if (divided) {
+          factors.push(i);
+        }
+      }
+      return factors;
+    }
+
+    // Array codes methods. Generates a parity matrix which 
+    // has a generator in the form of G = [ I|K ]
+    LDPC.generateParity2 = function(n, k) {
+      var factors = getPrimeFactors(n);
+      var pvalues = factors.filter(function(f) { return k % f === 0 });
+      if (pvalues.length === 0) {
+        throw new Error('I can\'t generate a parity matrix! n and k must have a common prime factor. e.g: 10, 4');
+      }
+      var p = pvalues[math.randomInt(0, pvalues.length)];
+      var ic = n / p, jc = (n - k) / p;
+
+      var identity = math.eye(p, p), zeros = math.zeros(p, p);
+      var alpha = math.concat(math.zeros(p, 1), math.eye(p, p -1));
+      alpha.set([p-1, 0], 1);
+
+      var matrix1 = identity.clone();
+      var matrix2 = identity.clone();
+      for (var i = 1; i < jc; i ++) {
+        matrix1 = math.concat(matrix1, identity);
+      }
+      for (var i = jc + 1; i < ic; i ++) {
+        matrix2 = math.concat(matrix2, identity);
+      }
+
+      for (var j = 1; j < jc; j ++) {
+        var row1 = zeros, row2 = null;
+        var stepAlpha = math.pow(alpha, j);
+        var currAlpha = stepAlpha;
+
+        for (var i = 1; i < j; i ++) {
+          row1 = math.concat(row1, zeros);
+        }
+        row1 = math.concat(row1, identity);
+        for (var i = j + 1; i < jc; i ++) {
+          row1 = math.concat(row1, currAlpha);
+          currAlpha = math.multiply(currAlpha, stepAlpha);
+        }
+        
+        row2 = currAlpha;
+        currAlpha = math.multiply(currAlpha, stepAlpha);
+
+        for (var i = jc + 1; i < ic; i ++) {
+          row2 = math.concat(row2, currAlpha);
+          currAlpha = math.multiply(currAlpha, stepAlpha);
+        }
+
+        matrix1 = math.concat(matrix1, row1, 0);
+        matrix2 = math.concat(matrix2, row2, 0);
+      }
+
+      return math.concat(matrix2, matrix1).toArray();
     }
 
     return LDPC;
