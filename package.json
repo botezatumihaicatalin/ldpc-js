@@ -9,6 +9,7 @@
   "author": "Botezatu Mihai Catalin",
   "license": "ISC",
   "dependencies": {
-    "mathjs": "^3.11.5"
+    "mathjs": "^3.11.5",
+    "sleep": "^5.1.1"
   }
 }
