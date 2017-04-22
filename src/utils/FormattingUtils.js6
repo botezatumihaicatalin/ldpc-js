@@ -1,0 +1,30 @@
+import os from "os"
+
+export function matrixToString(matrix) {
+  if (!matrix) {
+    return
+  }
+  let array = matrix
+  if (matrix.toArray) {
+    array = matrix.toArray()
+  }
+  let lines = [ ]
+  array.forEach(function(line) {
+    lines.push(line.join(" "))
+  })
+  return lines.join(os.EOL)
+}
+
+export function arrayToString(array) {
+  const formatted = new Array(array.length)
+  for (let i = 0; i < array.length; i++) {
+    const value = array[i]
+    if (value % 1 == 0) {
+      formatted[i] = value.toString()
+    }
+    else {
+      formatted[i] = value.toFixed(2)
+    }
+  }
+  return "[" + formatted.join(", ") + "]"
+}

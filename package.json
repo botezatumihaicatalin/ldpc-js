@@ -4,12 +4,22 @@
   "description": "Javascript implementation of Low-parity density codes (for education purposes).",
   "main": "ldpc.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node ./node_modules/webpack/bin/webpack.js --minimize",
+    "start": "node ./build/bundle.js",
+    "setup-esformatter": "npm install esformatter esformatter-align esformatter-asi esformatter-braces esformatter-collapse-objects esformatter-dot-notation esformatter-flow esformatter-jsx esformatter-limit-linebreaks esformatter-literal-notation esformatter-parseint esformatter-quote-props esformatter-quotes esformatter-remove-trailing-commas esformatter-spaced-lined-comment esformatter-var-each"
   },
   "author": "Botezatu Mihai Catalin",
   "license": "ISC",
   "dependencies": {
     "mathjs": "^3.11.5",
     "sleep": "^5.1.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.21.0",
+    "babel-loader": "^6.2.10",
+    "babel-preset-env": "^1.1.4",
+    "json-loader": "^0.5.4",
+    "node-loader": "^0.6.0",
+    "webpack": "^1.14.0"
   }
 }

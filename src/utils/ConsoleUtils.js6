@@ -1,0 +1,68 @@
+import readlineSync from "readline-sync";
+import os from "os";
+import { clamp } from "./NumbersUtils";
+
+export function logToConsole(message, newLines = 0) {
+  let suffix = ""
+  for (var i = 0; i < newLines; i++) {
+    suffix += os.EOL
+  }
+  console.log(message + suffix)
+}
+
+export function promptToChooseBits(title, size, buffer) {
+  if (!buffer) {
+    buffer = new Array(size)
+    for (var i = 0; i < size; i++) {
+      buffer[i] = 0
+    }
+  }
+  else {
+    buffer = buffer.slice()
+    size   = buffer.length
+  }
+
+  let value = 0
+
+  logToConsole(title)
+  logToConsole("[Z] <- -> [X]  SWAP: [SPACE] FIX: [E]", 1)
+
+  while (true) {
+    const bits = new Array(size)
+    for (let idx = 0; idx < size; idx++) {
+      let bit = buffer[idx].toString()
+      if (idx == value) {
+        bit = "[" + bit + "]"
+      }
+      bits[idx] = bit
+    }
+    const bitsString = bits.join(", ")
+
+    logToConsole("\x1B[1A\x1B[K[" + bitsString + "]")
+
+    const key = readlineSync.keyIn("", {
+      hideEchoBack: true,
+      mask:         "",
+      limit:        "zxe01 "
+    })
+    if (key === "z") {
+      value = clamp(value - 1, 0, size - 1)
+    }
+    else if (key === "x") {
+      value = clamp(value + 1, 0, size - 1)
+    }
+    else if (key === " ") {
+      buffer[value] = +!Boolean(buffer[value])
+    }
+    else if (key === "0" || key === "1") {
+      buffer[value] = parseInt(key, 10)
+    }
+    else {
+      break
+    }
+  }
+
+  logToConsole("You chose: [" + buffer.join(", ") + "]", 1)
+
+  return buffer
+}

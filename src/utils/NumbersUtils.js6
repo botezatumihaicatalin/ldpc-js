@@ -1,0 +1,27 @@
+export function normalizedProduct(values) {
+  let prod1 = 1
+  let prod2 = 1
+  for (let i = 0, l = values.length; i < l; i++) {
+    prod1 *= values[i], prod2 *= 1.0 - values[i]
+  }
+  return prod1 / (prod1 + prod2)
+}
+
+export function primeFactors(number) {
+  let factors = [ ]
+  let divided = false
+  for (let idx = 2; idx <= number; idx++) {
+    divided = false
+    while (number % idx === 0) {
+      number /= idx, divided = true
+    }
+    if (divided) {
+      factors.push(idx)
+    }
+  }
+  return factors
+}
+
+export function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value))
+}

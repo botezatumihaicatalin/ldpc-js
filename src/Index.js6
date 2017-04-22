@@ -1,0 +1,55 @@
+import sleep from "sleep"
+import readlineSync from "readline-sync"
+import { matrixToString, arrayToString } from "./utils/FormattingUtils"
+import { logToConsole, promptToChooseBits } from "./utils/ConsoleUtils"
+import LDPC from "./ldpc/LDPC"
+
+const n = readlineSync.questionInt("Enter the output code size: ", { defaultInput: 20 })
+const k = readlineSync.questionInt("Enter the input code size: ", { defaultInput: 10 })
+const e = readlineSync.questionFloat("Enter the error probability: ", {
+  defaultInput: 0.1
+})
+const code = new LDPC({ n: n, k: k, error: e })
+
+logToConsole("Generated parity matrix is:")
+logToConsole(matrixToString(code.parity), 1)
+logToConsole("Generator matrix, derived from parity matrix is:")
+logToConsole(matrixToString(code.generator), 1)
+
+const message = promptToChooseBits("Choose the message to be sent", k)
+const encoded = code.encode(message)
+logToConsole("The coded message is: ")
+logToConsole(arrayToString(encoded), 1)
+
+const received = promptToChooseBits("Choose the errored code", n, encoded)
+
+logToConsole("Correcting the received message: ")
+const initial    = code.firstPass(received)
+let current      = code.passMessageToVariable(initial)
+let probabilites = code.finalPass(current, initial)
+logToConsole("\x1B[1A\x1B[K[" + arrayToString(probabilites))
+
+for (let it = 0; it < 10; it++) {
+  current      = code.passMessageToParity(current, initial)
+  current      = code.passMessageToVariable(current)
+  probabilites = code.finalPass(current, initial)
+  logToConsole("\x1B[1A\x1B[K[" + arrayToString(probabilites))
+  sleep.msleep(250)
+}
+
+const corrected = probabilites.map(p => +(p > 0.5))
+
+logToConsole("\u001b[2J\u001b[0;0H")
+logToConsole("FINAL STATS", 1)
+
+logToConsole("Message entered by you: ")
+logToConsole(arrayToString(message), 1)
+
+logToConsole("Sent coded message: ")
+logToConsole(arrayToString(encoded), 1)
+
+logToConsole("Received coded message: ")
+logToConsole(arrayToString(received), 1)
+
+logToConsole("Corrected code: ")
+logToConsole(arrayToString(corrected), 1)

@@ -1,0 +1,194 @@
+import math from "mathjs"
+import { normalizedProduct, primeFactors } from "../utils/NumbersUtils"
+
+export default class LDPC {
+
+  constructor(options) {
+    options = options || { }
+
+    // The coded message has "n" symbols
+    if (typeof options.n !== "number") {
+      options.n = 0
+    }
+    // The input message has "k" symbols
+    if (typeof options.k !== "number") {
+      options.k = 0
+    }
+    // The probability that the channel will error some bits.
+    if (typeof options.error !== "number") {
+      options.error = 0.01
+    }
+    // The parity matrix used to actually encode/decode.
+    if (typeof options.parity === "undefined") {
+      options.parity = LDPC.generateParity2(options.n, options.k)
+    }
+
+    this.n = options.n
+    this.k = options.k
+    this.j = this.n - this.k
+
+    this.error = options.error
+
+    this.parity = math.sparse(options.parity).resize([ this.j, this.n ])
+    this.generator = this.computeGenerator()
+  }
+
+  computeGenerator() {
+    const rows  = math.range(0, this.j)
+    const dcols = math.range(0, this.k)
+    const ecols = math.range(this.k, this.n)
+
+    const dMatrix = this.parity.subset(math.index(rows, dcols))
+    const eMatrix = this.parity.subset(math.index(rows, ecols))
+
+    const fMatrix = math.multiply(math.inv(eMatrix), dMatrix)
+      .map(elem => Math.abs(elem) % 2)
+
+    return math.concat(math.eye(this.k), math.transpose(fMatrix))
+  }
+
+  encode(symbols) {
+    const product   = math.multiply(symbols, this.generator)
+    const flattened = math.flatten(product.toArray())
+    return flattened.map(v => Math.abs(v) % 2)
+  }
+
+  firstPass(symbols) {
+    const error = this.error
+
+    return this.parity.map((value, index) => {
+      const [ check, digit ] = index
+      return symbols[digit] === 0 ? error : (1 - error)
+    }, true)
+  }
+
+  passMessageToParity(matrix, initial) {
+    const buffer = this.parity.clone()
+    const rows   = math.range(0, this.j)
+
+    matrix.forEach((value, index) => {
+      const [ check, digit ] = index
+      const column           = matrix.subset(math.index(rows, digit))
+      const product          = [ initial.get(index) ]
+
+      column.forEach((valuep, indexp) => {
+        const [ checkp, digitp ] = indexp
+        if (checkp !== check) {
+          product.push(valuep)
+        }
+      }, true)
+
+      buffer.set(index, normalizedProduct(product))
+    }, true)
+
+    return buffer
+  }
+
+  passMessageToVariable(matrix, initial) {
+    const buffer = this.parity.clone()
+    const cols   = math.range(0, this.n)
+
+    matrix.forEach((value, index) => {
+      const [ check, digit ] = index
+      const row              = matrix.subset(math.index(check, cols))
+      let product            = 1
+
+      row.forEach((valuep, indexp) => {
+        const [ checkp, digitp ] = indexp
+        if (digitp !== digit) {
+          product *= 1 - 2 * valuep
+        }
+      }, true)
+
+      buffer.set(index, 0.5 - 0.5 * product)
+    }, true)
+
+    return buffer
+  }
+
+  finalPass(matrix, initial) {
+    const finals = new Array(this.n)
+    for (let i = 0; i < finals.length; i++) {
+      finals[i] = [ ]
+    }
+
+    matrix.forEach((value, index) => {
+      const [ check, digit ] = index
+      if (finals[digit].length === 0) {
+        finals[digit].push(initial.get(index))
+      }
+      finals[digit].push(value)
+    }, true)
+
+    for (let i = 0; i < finals.length; i++) {
+      finals[i] = normalizedProduct(finals[i])
+    }
+
+    return finals
+  }
+
+  tryCorrect(symbols, maxIterations = 100) {
+    const initial = this.firstPass(symbols)
+    let current   = this.passMessageToVariable(initial)
+
+    for (let it = 0; it < maxIterations; it++) {
+      current = this.passMessageToParity(current, initial)
+      current = this.passMessageToVariable(current)
+    }
+
+    return this.finalPass(current, initial)
+  }
+
+  static generateParity2(n, k) {
+    const factors = primeFactors(n)
+    const pvalues = factors.filter(f => k % f === 0)
+    if (pvalues.length === 0) {
+      throw new Error("I can't generate a parity matrix! n and k must have a common prime factor. e.g: 10, 4");
+    }
+    const p  = pvalues[math.randomInt(0, pvalues.length)]
+    const ic = n / p
+    const jc = (n - k) / p
+
+    const identity = math.eye(p, p)
+    const zeros    = math.zeros(p, p)
+    const alpha    = math.concat(math.zeros(p, 1), math.eye(p, p - 1))
+    alpha.set([ p - 1, 0 ], 1)
+
+    let matrix1 = identity.clone()
+    let matrix2 = identity.clone()
+    for (let i = 1; i < jc; i++) {
+      matrix1 = math.concat(matrix1, identity)
+    }
+    for (let i = jc + 1; i < ic; i++) {
+      matrix2 = math.concat(matrix2, identity)
+    }
+
+    for (let j = 1; j < jc; j++) {
+      const stepAlpha = math.pow(alpha, j)
+      let currAlpha   = stepAlpha
+
+      let row1 = zeros
+      for (let i = 1; i < j; i++) {
+        row1 = math.concat(row1, zeros)
+      }
+      row1 = math.concat(row1, identity)
+      for (let i = j + 1; i < jc; i++) {
+        row1      = math.concat(row1, currAlpha)
+        currAlpha = math.multiply(currAlpha, stepAlpha)
+      }
+
+      let row2 = currAlpha
+      currAlpha = math.multiply(currAlpha, stepAlpha)
+
+      for (let i = jc + 1; i < ic; i++) {
+        row2      = math.concat(row2, currAlpha)
+        currAlpha = math.multiply(currAlpha, stepAlpha)
+      }
+
+      matrix1 = math.concat(matrix1, row1, 0)
+      matrix2 = math.concat(matrix2, row2, 0)
+    }
+
+    return math.concat(matrix2, matrix1).toArray()
+  }
+}
