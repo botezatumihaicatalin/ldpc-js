@@ -27,17 +27,21 @@ logToConsole("Correcting the received message: ")
 const initial    = code.firstPass(received)
 let current      = code.passMessageToVariable(initial)
 let probabilites = code.finalPass(current, initial)
+let corrected    = probabilites.map(p => +(p > 0.5))
 logToConsole("\x1B[1A\x1B[K[" + arrayToString(probabilites))
 
-for (let it = 0; it < 10; it++) {
+let isValid = false
+for (let it = 0; it < 100 && !isValid; it++) {
   current      = code.passMessageToParity(current, initial)
   current      = code.passMessageToVariable(current)
   probabilites = code.finalPass(current, initial)
+  corrected    = probabilites.map(p => +(p > 0.5))
+  isValid      = code.validate(corrected)
+
   logToConsole("\x1B[1A\x1B[K[" + arrayToString(probabilites))
   sleep.msleep(250)
 }
 
-const corrected = probabilites.map(p => +(p > 0.5))
 
 logToConsole("\u001b[2J\u001b[0;0H")
 logToConsole("FINAL STATS", 1)

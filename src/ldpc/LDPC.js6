@@ -53,6 +53,13 @@ export default class LDPC {
     return flattened.map(v => Math.abs(v) % 2)
   }
 
+  validate(symbols) {
+    const symbolsMatrix = math.transpose(math.matrix(symbols))
+    const product  = math.multiply(this.parity, symbolsMatrix)
+    const flattened = math.flatten(product.toArray())
+    return flattened.filter(x => x % 2 != 0).length === 0;
+  }
+
   firstPass(symbols) {
     const error = this.error
 

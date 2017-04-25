@@ -12,12 +12,14 @@
   "license": "ISC",
   "dependencies": {
     "mathjs": "^3.11.5",
+    "readline-sync": "^1.4.7",
     "sleep": "^5.1.1"
   },
   "devDependencies": {
     "babel-core": "^6.21.0",
     "babel-loader": "^6.2.10",
     "babel-preset-env": "^1.1.4",
+    "babel-preset-es2015": "^6.24.1",
     "json-loader": "^0.5.4",
     "node-loader": "^0.6.0",
     "webpack": "^1.14.0"
